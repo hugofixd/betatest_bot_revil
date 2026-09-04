@@ -4,6 +4,7 @@ from discord import app_commands
 import os
 import asyncio
 from dotenv import load_dotenv
+from aiohttp import web
 
 # =========================================================
 # CONFIGURACIÓN
@@ -528,6 +529,7 @@ async def reviil(interaction: discord.Interaction):
             "🧪 Servidores BETATEST\n"
             "💻 Desarrollo y programación\n"
             "🎨 Diseño y creatividad\n\n"
+
             "🚀 Construyendo nuevos proyectos."
         ),
 
@@ -604,4 +606,28 @@ if not TOKEN:
 
 else:
 
-    bot.run(TOKEN)
+    async def _start_web_and_bot():
+        # Start a minimal webserver so platforms that expect a bound PORT (like Railway)
+        # consider the process healthy. The webserver responds OK on '/'.
+        port = int(os.getenv("PORT", 3000))
+
+        async def handle(request):
+            return web.Response(text="OK")
+
+        app = web.Application()
+        app.router.add_get("/", handle)
+
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", port)
+        await site.start()
+
+        print(f"Webserver iniciado en el puerto {port}")
+
+        # Start the bot (this will keep running)
+        await bot.start(TOKEN)
+
+    try:
+        asyncio.run(_start_web_and_bot())
+    except KeyboardInterrupt:
+        pass
